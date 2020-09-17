@@ -46,7 +46,7 @@ $test->process("publisher", "publisher", "-ORBDebugLevel 1 -DCPSConfigFile". $pu
 $test->process("subscriber", "subscriber", "-ORBDebugLevel 1 -DCPSConfigFile" . $sub_ini . $pub_sub_security_opts);
 
 if ($test->flag('join')) {
-    $test->start_process("reporter");
+    # $test->start_process("reporter");
     $test->start_process("relay2");
     sleep 3;
     $test->start_process("subscriber");
@@ -55,7 +55,7 @@ if ($test->flag('join')) {
     sleep 3;
     $test->start_process("publisher");
 } else {
-    $test->start_process("reporter");
+    # $test->start_process("reporter");
     $test->start_process("relay1");
     $test->start_process("relay2");
     sleep 3;
@@ -68,6 +68,6 @@ $test->stop_process(5, "publisher");
 
 $test->kill_process(5, "relay1");
 $test->kill_process(5, "relay2");
-$test->kill_process(5, "reporter");
+#$test->kill_process(5, "reporter");
 
 exit $test->finish();
