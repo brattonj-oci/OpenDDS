@@ -77,11 +77,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   std::string user_data;
   std::size_t max_throughput = 80; // in MBps
   bool run_relay = true;
-  bool publish_handler_statistics = true;
-  bool publish_domain_statistics = true;
-  bool report_handler_statistics = false;
-  bool report_domain_statistics = false;
-  bool report_participant_statistics = false;
+  bool publish_relay_statistics = true;
+  bool report_relay_statistics = false;
   RelayHandlerConfig config;
 
 #ifdef OPENDDS_SECURITY
@@ -129,35 +126,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     } else if ((arg = args.get_the_parameter("-RunRelay"))) {
       run_relay = ACE_OS::atoi(arg);
       args.consume_arg();
-    } else if ((arg = args.get_the_parameter("-PublishHandlerStatistics"))) {
-      publish_handler_statistics = ACE_OS::atoi(arg);
-      args.consume_arg();
-    } else if ((arg = args.get_the_parameter("-PublishDomainStatistics"))) {
-      publish_domain_statistics = ACE_OS::atoi(arg);
-      args.consume_arg();
-    } else if ((arg = args.get_the_parameter("-PublishParticipantStatistics"))) {
-      config.publish_participant_statistics(ACE_OS::atoi(arg));
-      args.consume_arg();
     } else if ((arg = args.get_the_parameter("-PublishStatistics"))) {
-      bool flag = ACE_OS::atoi(arg);
-      publish_handler_statistics = flag;
-      publish_domain_statistics = flag;
-      config.publish_participant_statistics(flag);
-      args.consume_arg();
-    } else if ((arg = args.get_the_parameter("-ReportHandlerStatistics"))) {
-      report_handler_statistics = ACE_OS::atoi(arg);
-      args.consume_arg();
-    } else if ((arg = args.get_the_parameter("-ReportDomainStatistics"))) {
-      report_domain_statistics = ACE_OS::atoi(arg);
-      args.consume_arg();
-    } else if ((arg = args.get_the_parameter("-ReportParticipantStatistics"))) {
-      report_participant_statistics = ACE_OS::atoi(arg);
+      publish_relay_statistics = ACE_OS::atoi(arg);
+      config.publish_relay_statistics(publish_relay_statistics);
       args.consume_arg();
     } else if ((arg = args.get_the_parameter("-ReportStatistics"))) {
       bool flag = ACE_OS::atoi(arg);
-      report_handler_statistics = flag;
-      report_domain_statistics = flag;
-      report_participant_statistics = flag;
+      report_relay_statistics = flag;
       args.consume_arg();
 #ifdef OPENDDS_SECURITY
     } else if ((arg = args.get_the_parameter("-IdentityCA"))) {
@@ -370,8 +345,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   // Setup statistics reportings.
   DDS::DataReaderListener_var handler_statistics_listener;
   DDS::DataReader_var handler_statistics_reader_var;
-  if (report_handler_statistics) {
-    handler_statistics_listener = new HandlerStatisticsListener(report_participant_statistics);
+  if (report_relay_statistics) {
+    handler_statistics_listener = new HandlerStatisticsListener(report_relay_statistics);
     handler_statistics_reader_var = relay_subscriber->create_datareader(handler_statistics_topic, reader_qos,
                                                                         handler_statistics_listener,
                                                                         DDS::DATA_AVAILABLE_STATUS);
@@ -384,7 +359,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 
   DDS::DataReaderListener_var domain_statistics_listener;
   DDS::DataReader_var domain_statistics_reader_var;
-  if (report_domain_statistics) {
+  if (report_relay_statistics) {
     domain_statistics_listener = new DomainStatisticsListener();
     domain_statistics_reader_var = relay_subscriber->create_datareader(domain_statistics_topic, reader_qos,
                                                                        domain_statistics_listener,
@@ -397,11 +372,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   }
 
   // Setup statistics publishing.
-  if (publish_handler_statistics && !config.handler_statistics_writer(relay_publisher->create_datawriter(handler_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
+  if (publish_relay_statistics && !config.handler_statistics_writer(relay_publisher->create_datawriter(handler_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
     return EXIT_FAILURE;
   }
 
-  if (publish_domain_statistics && !config.domain_statistics_writer(relay_publisher->create_datawriter(domain_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
+  if (publish_relay_statistics && !config.domain_statistics_writer(relay_publisher->create_datawriter(domain_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
     return EXIT_FAILURE;
   }
 
@@ -657,7 +632,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 #endif
 
     reactor->run_reactor_event_loop();
-  } else if (report_handler_statistics || report_domain_statistics || report_participant_statistics) {
+  } else if (report_relay_statistics) {
     // Run forever.
     for (;;) {
       ACE_OS::sleep(60);

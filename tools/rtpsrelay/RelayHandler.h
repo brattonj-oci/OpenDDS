@@ -34,7 +34,7 @@ public:
     , application_participant_guid_(OpenDDS::DCPS::GUID_UNKNOWN)
     , lifespan_(60) // 1 minute
     , application_domain_(1)
-    , publish_participant_statistics_(true)
+    , publish_relay_statistics_(true)
   {}
 
   void statistics_interval(const OpenDDS::DCPS::TimeDuration& flag)
@@ -123,14 +123,14 @@ public:
     return application_domain_;
   }
 
-  void publish_participant_statistics(bool flag)
+  void publish_relay_statistics(bool flag)
   {
-    publish_participant_statistics_ = flag;
+    publish_relay_statistics_ = flag;
   }
 
-  bool publish_participant_statistics() const
+  bool publish_relay_statistics() const
   {
-    return publish_participant_statistics_;
+    return publish_relay_statistics_;
   }
 
 private:
@@ -143,7 +143,7 @@ private:
   OpenDDS::DCPS::RepoId application_participant_guid_;
   OpenDDS::DCPS::TimeDuration lifespan_;
   DDS::DomainId_t application_domain_;
-  bool publish_participant_statistics_;
+  bool publish_relay_statistics_;
 };
 
 class RelayHandler : public ACE_Event_Handler {
@@ -173,7 +173,7 @@ protected:
   {
     handler_statistics_._max_fan_out = std::max(handler_statistics_._max_fan_out, static_cast<uint32_t>(fan_out));
 
-    if (config_.publish_participant_statistics()) {
+    if (config_.publish_relay_statistics()) {
       auto& ps = participant_statistics_[from];
       ps._max_fan_out = std::max(ps._max_fan_out, static_cast<uint32_t>(fan_out));
     }

@@ -106,7 +106,7 @@ int RelayHandler::open(const ACE_INET_Addr& address)
     return -1;
   }
 
-  if (config_.handler_statistics_writer() || config_.publish_participant_statistics()) {
+  if (config_.handler_statistics_writer() || config_.publish_relay_statistics()) {
     reset_statistics(OpenDDS::DCPS::MonotonicTimePoint::now());
     if (reactor()->schedule_timer(this, &this->handler_statistics_, config_.statistics_interval().value(), config_.statistics_interval().value()) == -1) {
       ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::open %C failed to register schedule statistics timer\n"), name_.c_str()));
@@ -162,7 +162,7 @@ int RelayHandler::handle_input(ACE_HANDLE handle)
   handler_statistics_._bytes_in += bytes;
   ++handler_statistics_._messages_in;
 
-  if (config_.publish_participant_statistics()) {
+  if (config_.publish_relay_statistics()) {
     auto& ps = participant_statistics_[remote];
     ps._bytes_in += bytes;
     ++ps._messages_in;
@@ -206,7 +206,7 @@ int RelayHandler::handle_output(ACE_HANDLE)
       handler_statistics_._bytes_out += bytes;
       ++handler_statistics_._messages_out;
 
-      if (config_.publish_participant_statistics()) {
+      if (config_.publish_relay_statistics()) {
         auto& ps = participant_statistics_[out.first];
         ps._bytes_out += bytes;
         ++ps._messages_out;
@@ -250,7 +250,7 @@ int RelayHandler::handle_timeout(const ACE_Time_Value& ace_now, const void* ptr)
       handler_statistics_._interval._nanosec = dds_duration.nanosec;
       handler_statistics_._local_active_participants = local_active_participants();
 
-      if (config_.publish_participant_statistics()) {
+      if (config_.publish_relay_statistics()) {
         for (auto& p : participant_statistics_) {
           p.second.address(addr_to_string(p.first));
           handler_statistics_.participant_statistics().push_back(p.second);
