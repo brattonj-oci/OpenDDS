@@ -132,6 +132,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
       args.consume_arg();
     } else if ((arg = args.get_the_parameter("-ReportStatistics"))) {
       bool flag = ACE_OS::atoi(arg);
+      config.log_relay_statistics(flag);
       report_relay_statistics = flag;
       args.consume_arg();
 #ifdef OPENDDS_SECURITY
@@ -343,33 +344,33 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   reader_qos.reliability.kind = DDS::RELIABLE_RELIABILITY_QOS;
 
   // Setup statistics reportings.
-  DDS::DataReaderListener_var handler_statistics_listener;
-  DDS::DataReader_var handler_statistics_reader_var;
-  if (report_relay_statistics) {
-    handler_statistics_listener = new HandlerStatisticsListener(report_relay_statistics);
-    handler_statistics_reader_var = relay_subscriber->create_datareader(handler_statistics_topic, reader_qos,
-                                                                        handler_statistics_listener,
-                                                                        DDS::DATA_AVAILABLE_STATUS);
+  // DDS::DataReaderListener_var handler_statistics_listener;
+  // DDS::DataReader_var handler_statistics_reader_var;
+  // if (report_relay_statistics) {
+  //   handler_statistics_listener = new HandlerStatisticsListener(report_relay_statistics);
+  //   handler_statistics_reader_var = relay_subscriber->create_datareader(handler_statistics_topic, reader_qos,
+  //                                                                       handler_statistics_listener,
+  //                                                                       DDS::DATA_AVAILABLE_STATUS);
 
-    if (!handler_statistics_reader_var) {
-      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Handler Statistics data reader\n")));
-      return EXIT_FAILURE;
-    }
-  }
+  //   if (!handler_statistics_reader_var) {
+  //     ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Handler Statistics data reader\n")));
+  //     return EXIT_FAILURE;
+  //   }
+  // }
 
-  DDS::DataReaderListener_var domain_statistics_listener;
-  DDS::DataReader_var domain_statistics_reader_var;
-  if (report_relay_statistics) {
-    domain_statistics_listener = new DomainStatisticsListener();
-    domain_statistics_reader_var = relay_subscriber->create_datareader(domain_statistics_topic, reader_qos,
-                                                                       domain_statistics_listener,
-                                                                       DDS::DATA_AVAILABLE_STATUS);
+  // DDS::DataReaderListener_var domain_statistics_listener;
+  // DDS::DataReader_var domain_statistics_reader_var;
+  // if (report_relay_statistics) {
+  //   domain_statistics_listener = new DomainStatisticsListener();
+  //   domain_statistics_reader_var = relay_subscriber->create_datareader(domain_statistics_topic, reader_qos,
+  //                                                                      domain_statistics_listener,
+  //                                                                      DDS::DATA_AVAILABLE_STATUS);
 
-    if (!domain_statistics_reader_var) {
-      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Domain Statistics data reader\n")));
-      return EXIT_FAILURE;
-    }
-  }
+  //   if (!domain_statistics_reader_var) {
+  //     ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Domain Statistics data reader\n")));
+  //     return EXIT_FAILURE;
+  //   }
+  // }
 
   // Setup statistics publishing.
   if (publish_relay_statistics && !config.handler_statistics_writer(relay_publisher->create_datawriter(handler_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
@@ -632,12 +633,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 #endif
 
     reactor->run_reactor_event_loop();
-  } else if (report_relay_statistics) {
-    // Run forever.
-    for (;;) {
-      ACE_OS::sleep(60);
-    }
-  }
+  } // else if (report_relay_statistics) {
+  //   // Run forever.
+  //   for (;;) {
+  //     ACE_OS::sleep(60);
+  //   }
+  // }
 
   return EXIT_SUCCESS;
 }

@@ -25,14 +25,14 @@
 
 namespace RtpsRelay {
 
-bool
-operator<(const Duration_t& x, const Duration_t& y)
-{
-  if (x.sec() != y.sec()) {
-    return x.sec() < y.sec();
-  }
-  return x.nanosec() < y.nanosec();
-}
+// bool
+// operator<(const Duration_t& x, const Duration_t& y)
+// {
+//   if (x.sec() != y.sec()) {
+//     return x.sec() < y.sec();
+//   }
+//   return x.nanosec() < y.nanosec();
+// }
 
 #ifdef OPENDDS_SECURITY
 namespace {
@@ -71,9 +71,10 @@ RelayHandler::RelayHandler(const RelayHandlerConfig& config,
   , governor_(governor)
   , config_(config)
   , name_(name)
+  , handler_statistics_(config.application_participant_guid(), name)
 {
-  handler_statistics_.application_participant_guid(repoid_to_guid(config.application_participant_guid()));
-  handler_statistics_.name(name);
+  //handler_statistics_.application_participant_guid(repoid_to_guid(config.application_participant_guid()));
+  //handler_statistics_.name(name);
 }
 
 int RelayHandler::open(const ACE_INET_Addr& address)
@@ -159,8 +160,9 @@ int RelayHandler::handle_input(ACE_HANDLE handle)
 
   buffer->length(bytes);
 
-  handler_statistics_._bytes_in += bytes;
-  ++handler_statistics_._messages_in;
+  handler_statistics_.process_input_msg(remote, static_cast<uint32_t>(bytes));
+  //handler_statistics_._bytes_in += bytes;
+  //++handler_statistics_._messages_in;
 
   if (config_.publish_relay_statistics()) {
     auto& ps = participant_statistics_[remote];
@@ -203,8 +205,10 @@ int RelayHandler::handle_output(ACE_HANDLE)
       ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::handle_output %C failed to send to %C: %m\n"), name_.c_str(), addr_to_string(out.first).c_str()));
     } else {
       governor_.add_bytes(bytes);
-      handler_statistics_._bytes_out += bytes;
-      ++handler_statistics_._messages_out;
+
+      handler_statistics_.process_output_msg(out.first, bytes);
+      //handler_statistics_._bytes_out += bytes;
+      //++handler_statistics_._messages_out;
 
       if (config_.publish_relay_statistics()) {
         auto& ps = participant_statistics_[out.first];
@@ -230,7 +234,8 @@ int RelayHandler::handle_output(ACE_HANDLE)
       reactor()->remove_handler(this, WRITE_MASK);
       reactor()->schedule_timer(this, 0, d.value());
 
-      handler_statistics_._max_queue_latency = std::max(handler_statistics_._max_queue_latency, relay_duration);
+      //handler_statistics_._max_queue_latency = std::max(handler_statistics_._max_queue_latency, relay_duration);
+      handler_statistics_.update_queue_latency(relay_duration);
     }
   }
 
@@ -245,23 +250,28 @@ int RelayHandler::handle_timeout(const ACE_Time_Value& ace_now, const void* ptr)
     const auto duration = now - last_report_time_;
     const auto dds_duration = duration.to_dds_duration();
 
-    if (config_.handler_statistics_writer()) {
-      handler_statistics_._interval._sec = dds_duration.sec;
-      handler_statistics_._interval._nanosec = dds_duration.nanosec;
-      handler_statistics_._local_active_participants = local_active_participants();
-
-      if (config_.publish_relay_statistics()) {
-        for (auto& p : participant_statistics_) {
-          p.second.address(addr_to_string(p.first));
-          handler_statistics_.participant_statistics().push_back(p.second);
-        }
-      }
-
-      const auto ret = config_.handler_statistics_writer()->write(handler_statistics_, DDS::HANDLE_NIL);
-      if (ret != DDS::RETCODE_OK) {
-        ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::handle_timeout %C failed to write handler statistics\n"), name_.c_str()));
-      }
+    if (config_.log_relay_statistics()) {
+      handler_statistics_.log_stats(now);
     }
+    handler_statistics_.reset_stats();
+
+    // if (config_.handler_statistics_writer()) {
+    //   //handler_statistics_._interval._sec = dds_duration.sec;
+    //   //handler_statistics_._interval._nanosec = dds_duration.nanosec;
+    //   //handler_statistics_._local_active_participants = local_active_participants();
+
+    //   if (config_.publish_relay_statistics()) {
+    //     for (auto& p : participant_statistics_) {
+    //       p.second.address(addr_to_string(p.first));
+    //       handler_statistics_.participant_statistics().push_back(p.second);
+    //     }
+    //   }
+
+    //   const auto ret = config_.handler_statistics_writer()->write(handler_statistics_, DDS::HANDLE_NIL);
+    //   if (ret != DDS::RETCODE_OK) {
+    //     ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::handle_timeout %C failed to write handler statistics\n"), name_.c_str()));
+    //   }
+    //}
 
     reset_statistics(now);
   } else {
@@ -275,15 +285,18 @@ int RelayHandler::handle_timeout(const ACE_Time_Value& ace_now, const void* ptr)
 void RelayHandler::reset_statistics(const OpenDDS::DCPS::MonotonicTimePoint& now)
 {
   last_report_time_ = now;
-  handler_statistics_._bytes_in = 0;
-  handler_statistics_._messages_in = 0;
-  handler_statistics_._bytes_out = 0;
-  handler_statistics_._messages_out = 0;
-  handler_statistics_._max_fan_out = 0;
-  handler_statistics_._max_queue_size = 0;
-  handler_statistics_._max_queue_latency._sec = 0;
-  handler_statistics_._max_queue_latency._nanosec = 0;
-  handler_statistics_.participant_statistics().clear();
+
+  handler_statistics_.reset_stats();
+
+  // handler_statistics_._bytes_in = 0;
+  // handler_statistics_._messages_in = 0;
+  // handler_statistics_._bytes_out = 0;
+  // handler_statistics_._messages_out = 0;
+  // handler_statistics_._max_fan_out = 0;
+  // handler_statistics_._max_queue_size = 0;
+  // handler_statistics_._max_queue_latency._sec = 0;
+  // handler_statistics_._max_queue_latency._nanosec = 0;
+  // handler_statistics_.participant_statistics().clear();
   participant_statistics_.clear();
 }
 
@@ -294,8 +307,9 @@ void RelayHandler::enqueue_message(const ACE_INET_Addr& addr, const OpenDDS::DCP
   const auto empty = outgoing_.empty();
 
   outgoing_.push(std::make_pair(addr, msg));
-  handler_statistics_._max_queue_size = std::max(handler_statistics_._max_queue_size, static_cast<uint32_t>(outgoing_.size()));
+  //handler_statistics_._max_queue_size = std::max(handler_statistics_._max_queue_size, static_cast<uint32_t>(outgoing_.size()));
 
+  handler_statistics_.update_queue_size(static_cast<uint32_t>(outgoing_.size()));
   if (empty) {
     reactor()->register_handler(this, WRITE_MASK);
   }

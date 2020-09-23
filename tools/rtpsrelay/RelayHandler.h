@@ -3,6 +3,7 @@
 
 #include "AssociationTable.h"
 #include "Governor.h"
+#include "RelayHandlerStatistics.h"
 
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 
@@ -35,6 +36,7 @@ public:
     , lifespan_(60) // 1 minute
     , application_domain_(1)
     , publish_relay_statistics_(true)
+    , log_relay_statistics_(false)
   {}
 
   void statistics_interval(const OpenDDS::DCPS::TimeDuration& flag)
@@ -133,6 +135,16 @@ public:
     return publish_relay_statistics_;
   }
 
+  void log_relay_statistics(bool flag)
+  {
+    log_relay_statistics_ = flag;
+  }
+
+  bool log_relay_statistics() const
+  {
+    return log_relay_statistics_;
+  }
+
 private:
   OpenDDS::DCPS::TimeDuration statistics_interval_;
   DDS::DataWriter_var handler_statistics_writer_var_;
@@ -144,6 +156,7 @@ private:
   OpenDDS::DCPS::TimeDuration lifespan_;
   DDS::DomainId_t application_domain_;
   bool publish_relay_statistics_;
+  bool log_relay_statistics_;
 };
 
 class RelayHandler : public ACE_Event_Handler {
@@ -171,7 +184,9 @@ protected:
 
   void max_fan_out(const ACE_INET_Addr& from, size_t fan_out)
   {
-    handler_statistics_._max_fan_out = std::max(handler_statistics_._max_fan_out, static_cast<uint32_t>(fan_out));
+    //handler_statistics_._max_fan_out = std::max(handler_statistics_._max_fan_out, static_cast<uint32_t>(fan_out));
+
+    handler_statistics_.update_fan_out(from, static_cast<uint32_t>(fan_out));
 
     if (config_.publish_relay_statistics()) {
       auto& ps = participant_statistics_[from];
@@ -191,7 +206,8 @@ private:
 protected:
   const RelayHandlerConfig& config_;
   const std::string name_;
-  HandlerStatistics handler_statistics_;
+  RelayHandlerStatistics handler_statistics_;
+  //HandlerStatistics handler_statistics_;
   std::map<ACE_INET_Addr, ParticipantStatistics> participant_statistics_;
 };
 
