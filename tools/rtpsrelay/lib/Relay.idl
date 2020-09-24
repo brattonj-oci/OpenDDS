@@ -65,16 +65,21 @@ module RtpsRelay {
     unsigned long nanosec;
   };
 
+  // @topic
   struct ParticipantStatistics {
-    string address;
+    // Make the address a @key
+    // Add a GUID @key
+    @key GUID_t guid;
+    @key string address;
     unsigned long messages_in;
     unsigned long long bytes_in;
     unsigned long messages_out;
     unsigned long long bytes_out;
     unsigned long max_fan_out;
+    unsigned long error_count;
+    Duration_t interval;
+    Duration_t max_queue_latency;
   };
-
-  typedef sequence<ParticipantStatistics> ParticipantStatisticsSequence;
 
   @topic
   struct HandlerStatistics {
@@ -89,7 +94,10 @@ module RtpsRelay {
     unsigned long max_queue_size;
     Duration_t max_queue_latency;
     unsigned long local_active_participants;
-    ParticipantStatisticsSequence participant_statistics;
+    // Remove these
+    //ParticipantStatisticsSequence participant_statistics;
+    // Add these
+    // Error counts
   };
 
   @topic

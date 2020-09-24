@@ -71,7 +71,9 @@ RelayHandler::RelayHandler(const RelayHandlerConfig& config,
   , governor_(governor)
   , config_(config)
   , name_(name)
-  , handler_statistics_(config.application_participant_guid(), name)
+  , handler_statistics_(OpenDDS::DCPS::make_rch<RelayHandlerStatistics>(
+      config.application_participant_guid(), name))
+  , participant_statistics_(config.participant_stats_reporter())
 {
   //handler_statistics_.application_participant_guid(repoid_to_guid(config.application_participant_guid()));
   //handler_statistics_.name(name);
@@ -160,15 +162,13 @@ int RelayHandler::handle_input(ACE_HANDLE handle)
 
   buffer->length(bytes);
 
-  handler_statistics_.process_input_msg(remote, static_cast<uint32_t>(bytes));
-  //handler_statistics_._bytes_in += bytes;
-  //++handler_statistics_._messages_in;
-
-  if (config_.publish_relay_statistics()) {
-    auto& ps = participant_statistics_[remote];
-    ps._bytes_in += bytes;
-    ++ps._messages_in;
-  }
+  handler_statistics_->update_input_msgs(static_cast<size_t>(bytes));
+ 
+  // if (config_.publish_relay_statistics()) {
+  //   auto& ps = participant_statistics_[remote];
+  //   ps._bytes_in += bytes;
+  //   ++ps._messages_in;
+  // }
 
   process_message(remote, OpenDDS::DCPS::MonotonicTimePoint::now(), buffer);
   return 0;
@@ -206,15 +206,13 @@ int RelayHandler::handle_output(ACE_HANDLE)
     } else {
       governor_.add_bytes(bytes);
 
-      handler_statistics_.process_output_msg(out.first, bytes);
-      //handler_statistics_._bytes_out += bytes;
-      //++handler_statistics_._messages_out;
+      handler_statistics_->update_output_msgs(static_cast<size_t>(bytes));
 
-      if (config_.publish_relay_statistics()) {
-        auto& ps = participant_statistics_[out.first];
-        ps._bytes_out += bytes;
-        ++ps._messages_out;
-      }
+      // if (config_.publish_relay_statistics()) {
+      //   auto& ps = participant_statistics_[out.first];
+      //   ps._bytes_out += bytes;
+      //   ++ps._messages_out;
+      // }
     }
 
     outgoing_.pop();
@@ -234,8 +232,7 @@ int RelayHandler::handle_output(ACE_HANDLE)
       reactor()->remove_handler(this, WRITE_MASK);
       reactor()->schedule_timer(this, 0, d.value());
 
-      //handler_statistics_._max_queue_latency = std::max(handler_statistics_._max_queue_latency, relay_duration);
-      handler_statistics_.update_queue_latency(relay_duration);
+      handler_statistics_->update_queue_latency(relay_duration);
     }
   }
 
@@ -251,9 +248,9 @@ int RelayHandler::handle_timeout(const ACE_Time_Value& ace_now, const void* ptr)
     const auto dds_duration = duration.to_dds_duration();
 
     if (config_.log_relay_statistics()) {
-      handler_statistics_.log_stats(now);
+      handler_statistics_->report(now);
     }
-    handler_statistics_.reset_stats();
+    participant_statistics_->report(now);
 
     // if (config_.handler_statistics_writer()) {
     //   //handler_statistics_._interval._sec = dds_duration.sec;
@@ -286,7 +283,7 @@ void RelayHandler::reset_statistics(const OpenDDS::DCPS::MonotonicTimePoint& now
 {
   last_report_time_ = now;
 
-  handler_statistics_.reset_stats();
+  //handler_statistics_.reset_stats();
 
   // handler_statistics_._bytes_in = 0;
   // handler_statistics_._messages_in = 0;
@@ -297,7 +294,7 @@ void RelayHandler::reset_statistics(const OpenDDS::DCPS::MonotonicTimePoint& now
   // handler_statistics_._max_queue_latency._sec = 0;
   // handler_statistics_._max_queue_latency._nanosec = 0;
   // handler_statistics_.participant_statistics().clear();
-  participant_statistics_.clear();
+  //participant_statistics_.clear();
 }
 
 void RelayHandler::enqueue_message(const ACE_INET_Addr& addr, const OpenDDS::DCPS::Message_Block_Shared_Ptr& msg)
@@ -307,9 +304,7 @@ void RelayHandler::enqueue_message(const ACE_INET_Addr& addr, const OpenDDS::DCP
   const auto empty = outgoing_.empty();
 
   outgoing_.push(std::make_pair(addr, msg));
-  //handler_statistics_._max_queue_size = std::max(handler_statistics_._max_queue_size, static_cast<uint32_t>(outgoing_.size()));
-
-  handler_statistics_.update_queue_size(static_cast<uint32_t>(outgoing_.size()));
+  handler_statistics_->update_queue_size(static_cast<uint32_t>(outgoing_.size()));
   if (empty) {
     reactor()->register_handler(this, WRITE_MASK);
   }
@@ -348,6 +343,7 @@ void VerticalHandler::process_message(const ACE_INET_Addr& remote,
   OpenDDS::DCPS::RepoId src_guid;
   GuidSet to;
   bool is_beacon = true;
+  auto msg_len = msg->length();
 
   OpenDDS::RTPS::MessageParser mp(*msg);
   if (!parse_message(mp, msg, src_guid, to, is_beacon, true)) {
@@ -363,6 +359,9 @@ void VerticalHandler::process_message(const ACE_INET_Addr& remote,
   }
 
   const GuidAddr ga(src_guid, remote);
+
+  // Record the participant stats only if a valid message was received
+  participant_statistics_->update_input_msgs(ga, msg_len);
 
   // Compute the new expiration time for this GuidAddr.
   const auto expiration = now + config_.lifespan();
@@ -688,7 +687,7 @@ void HorizontalHandler::process_message(const ACE_INET_Addr& from,
     const auto p = vertical_handler_->find(guid_to_repoid(guid));
     if (p != vertical_handler_->end()) {
       for (const auto& addr : p->second) {
-        vertical_handler_->enqueue_message(addr, msg);
+        vertical_handler_->enqueue_message(guid, addr, msg);
       }
     } else {
       ACE_ERROR((LM_WARNING, ACE_TEXT("(%P|%t) %N:%l WARNING: HorizontalHandler::process_message %C failed to get address for %C\n"), name_.c_str(), guid_to_string(guid_to_repoid(guid)).c_str()));
@@ -730,7 +729,7 @@ bool SpdpHandler::do_normal_processing(const ACE_INET_Addr& remote,
         const auto pos = guid_addr_set_map_.find(guid);
         if (pos != guid_addr_set_map_.end()) {
           for (const auto& addr : pos->second) {
-            enqueue_message(addr, msg);
+            enqueue_message(guid, addr, msg);
           }
         }
       }
@@ -740,7 +739,7 @@ bool SpdpHandler::do_normal_processing(const ACE_INET_Addr& remote,
       for (const auto& p : guid_addr_set_map_) {
         if (p.first != config_.application_participant_guid()) {
           for (const auto& addr : p.second) {
-            enqueue_message(addr, msg);
+            enqueue_message(p.first, addr, msg);
           }
         }
       }

@@ -14,6 +14,7 @@
 #include "RelayHandler.h"
 #include "SubscriptionListener.h"
 #include "WriterListener.h"
+#include "ParticipantStatisticsReporter.h"
 
 #include <dds/DCPS/BuiltInTopicUtils.h>
 #include <dds/DCPS/DomainParticipantImpl.h>
@@ -466,6 +467,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     const int crypto = 0;
 #endif
 
+    // Create the statistics classes and register them with the handlers
+    config.participant_stats_reporter(OpenDDS::DCPS::make_rch<ParticipantStatisticsReporter>());
+
     ACE_Reactor reactor_(new ACE_Select_Reactor, true);
     const auto reactor = &reactor_;
     AssociationTable association_table;
@@ -521,6 +525,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     spdp_vertical_handler.horizontal_handler(&spdp_horizontal_handler);
     sedp_vertical_handler.horizontal_handler(&sedp_horizontal_handler);
     data_vertical_handler.horizontal_handler(&data_horizontal_handler);
+
 
     DDS::Subscriber_var bit_subscriber = application_participant->get_builtin_subscriber();
 

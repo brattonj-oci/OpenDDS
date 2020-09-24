@@ -4,6 +4,7 @@
 #include "AssociationTable.h"
 #include "Governor.h"
 #include "RelayHandlerStatistics.h"
+#include "ParticipantStatisticsReporter.h"
 
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 
@@ -37,6 +38,7 @@ public:
     , application_domain_(1)
     , publish_relay_statistics_(true)
     , log_relay_statistics_(false)
+    , participant_stats_reporter_()
   {}
 
   void statistics_interval(const OpenDDS::DCPS::TimeDuration& flag)
@@ -145,6 +147,16 @@ public:
     return log_relay_statistics_;
   }
 
+  void participant_stats_reporter(ParticipantStatisticsReporter_rch reporter)
+  {
+    participant_stats_reporter_ = reporter;
+  }
+
+  ParticipantStatisticsReporter_rch participant_stats_reporter() const
+  {
+    return participant_stats_reporter_;
+  }
+
 private:
   OpenDDS::DCPS::TimeDuration statistics_interval_;
   DDS::DataWriter_var handler_statistics_writer_var_;
@@ -157,12 +169,16 @@ private:
   DDS::DomainId_t application_domain_;
   bool publish_relay_statistics_;
   bool log_relay_statistics_;
+
+  ParticipantStatisticsReporter_rch participant_stats_reporter_;
 };
 
 class RelayHandler : public ACE_Event_Handler {
 public:
   int open(const ACE_INET_Addr& address);
   void enqueue_message(const ACE_INET_Addr& addr, const OpenDDS::DCPS::Message_Block_Shared_Ptr& msg);
+
+  void publish_statistics();
 
 protected:
   explicit RelayHandler(const RelayHandlerConfig& config,
@@ -184,14 +200,12 @@ protected:
 
   void max_fan_out(const ACE_INET_Addr& from, size_t fan_out)
   {
-    //handler_statistics_._max_fan_out = std::max(handler_statistics_._max_fan_out, static_cast<uint32_t>(fan_out));
+    //handler_statistics_->update_fan_out(static_cast<uint32_t>(fan_out));
 
-    handler_statistics_.update_fan_out(from, static_cast<uint32_t>(fan_out));
-
-    if (config_.publish_relay_statistics()) {
-      auto& ps = participant_statistics_[from];
-      ps._max_fan_out = std::max(ps._max_fan_out, static_cast<uint32_t>(fan_out));
-    }
+    //if (config_.publish_relay_statistics()) {
+    //  auto& ps = participant_statistics_[from];
+    //  ps._max_fan_out = std::max(ps._max_fan_out, static_cast<uint32_t>(fan_out));
+    //}
   }
 
 private:
@@ -206,9 +220,10 @@ private:
 protected:
   const RelayHandlerConfig& config_;
   const std::string name_;
-  RelayHandlerStatistics handler_statistics_;
+  RelayHandlerStatistics_rch handler_statistics_;
+  ParticipantStatisticsReporter_rch participant_statistics_;
   //HandlerStatistics handler_statistics_;
-  std::map<ACE_INET_Addr, ParticipantStatistics> participant_statistics_;
+  //std::map<ACE_INET_Addr, ParticipantStatistics> participant_statistics_;
 };
 
 class HorizontalHandler;
