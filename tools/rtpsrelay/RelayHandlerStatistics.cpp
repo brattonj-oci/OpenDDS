@@ -28,7 +28,6 @@ RelayHandlerStatistics::RelayHandlerStatistics(
   handler_stats_.name(name);
   particpant_name_ = guid_to_string(
     guid_to_repoid(handler_stats_.application_participant_guid()));
-
 }
  
 RelayHandlerStatistics::~RelayHandlerStatistics()
@@ -110,27 +109,26 @@ void RelayHandlerStatistics::report(const OpenDDS::DCPS::MonotonicTimePoint& tim
     if (ret != DDS::RETCODE_OK) {
       ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::handle_timeout %C failed to write handler statistics\n"), handler_stats_.name().c_str()));
     }
-  }
-  log_stats(handler_stats_);
-}
+  }  
+  
+  ACE_TCHAR timestamp[OpenDDS::DCPS::AceTimestampSize];
+  ACE::timestamp(timestamp, sizeof(timestamp) / sizeof(ACE_TCHAR));
 
-void RelayHandlerStatistics::log_stats(HandlerStatistics& hs)
-{
-  int timestamp = 0; // TBD
+  // Log the stats to the console
   std::cout << timestamp << ' '
             << "application_participant_guid=" << particpant_name_ << ' '
-            << "name=\"" << hs.name() << "\" "
-            << "interval=" << hs.interval().sec() << '.' << hs.interval().nanosec() << ' '
-            << "messages_in=" << hs.messages_in() << ' '
-            << "bytes_in=" << hs.bytes_in() << ' '
-            << "messages_out=" << hs.messages_out() << ' '
-            << "bytes_out=" << hs.bytes_out() << ' '
-            << "max_fan_out=" << hs.max_fan_out() << ' '
-            << "max_queue_size=" << hs.max_queue_size() << ' '
-            << "max_queue_latency=" << hs.max_queue_latency().sec() << '.' << hs.max_queue_latency().nanosec() << ' '
-            << "local_active_participants=" << hs.local_active_participants() << ' '
-            << "error_count=" << hs.error_count() << ' '
-            << "governor_count=" << hs.governor_count()
+            << "name=\"" << handler_stats_.name() << "\" "
+            << "interval=" << handler_stats_.interval().sec() << '.' << handler_stats_.interval().nanosec() << ' '
+            << "messages_in=" << handler_stats_.messages_in() << ' '
+            << "bytes_in=" << handler_stats_.bytes_in() << ' '
+            << "messages_out=" << handler_stats_.messages_out() << ' '
+            << "bytes_out=" << handler_stats_.bytes_out() << ' '
+            << "max_fan_out=" << handler_stats_.max_fan_out() << ' '
+            << "max_queue_size=" << handler_stats_.max_queue_size() << ' '
+            << "max_queue_latency=" << handler_stats_.max_queue_latency().sec() << '.' << handler_stats_.max_queue_latency().nanosec() << ' '
+            << "local_active_participants=" << handler_stats_.local_active_participants() << ' '
+            << "error_count=" << handler_stats_.error_count() << ' '
+            << "governor_count=" << handler_stats_.governor_count()
             << std::endl;
 }
 
@@ -146,22 +144,6 @@ void RelayHandlerStatistics::reset_stats()
   handler_stats_._max_queue_size = 0;
   handler_stats_._max_queue_latency._sec = 0;
   handler_stats_._max_queue_latency._nanosec = 0;
-}
-
-void RelayHandlerStatistics::copy_stats(HandlerStatistics& to)
-{
-  ACE_GUARD(ACE_Thread_Mutex, g, stats_mutex_);
-
-  to.application_participant_guid(handler_stats_.application_participant_guid());
-  to.name(handler_stats_.name());
-  to._bytes_in = handler_stats_._bytes_in;
-  to._messages_in = handler_stats_._messages_in;
-  to._bytes_out = handler_stats_._bytes_out;
-  to._messages_out = handler_stats_._messages_out;
-  to._max_fan_out = handler_stats_._max_fan_out;
-  to._max_queue_size = handler_stats_._max_queue_size;
-  to._max_queue_latency._sec = handler_stats_._max_queue_latency._sec;
-  to._max_queue_latency._nanosec = handler_stats_._max_queue_latency._nanosec;
 }
 
 } // namespace RtpsRelay

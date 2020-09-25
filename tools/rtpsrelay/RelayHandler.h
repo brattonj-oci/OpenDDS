@@ -197,7 +197,7 @@ protected:
                         const std::string& name,
                         ACE_Reactor* reactor,
                         Governor& governor,
-                        ParticipantStatisticsReporterBase_rch participant_stats);
+                        ParticipantStatisticsReporterBase& participant_stats);
 
   int handle_input(ACE_HANDLE handle) override;
   int handle_output(ACE_HANDLE handle) override;
@@ -213,7 +213,7 @@ protected:
 
   void max_fan_out(const ACE_INET_Addr& from, size_t fan_out)
   {
-    handler_statistics_->update_fan_out(static_cast<uint32_t>(fan_out));
+    handler_statistics_.update_fan_out(static_cast<uint32_t>(fan_out));
 
     //if (config_.publish_relay_statistics()) {
     //  auto& ps = participant_statistics_[from];
@@ -233,8 +233,8 @@ private:
 protected:
   const RelayHandlerConfig& config_;
   const std::string name_;
-  ParticipantStatisticsReporterBase_rch participant_statistics_;
-  RelayHandlerStatistics_rch handler_statistics_;
+  ParticipantStatisticsReporterBase& participant_statistics_;
+  RelayHandlerStatistics handler_statistics_;
 };
 
 class HorizontalHandler;
@@ -254,7 +254,7 @@ public:
                   GuidNameAddressDataReader_ptr responsible_relay_reader,
                   const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
                   const CRYPTO_TYPE& crypto,
-                  ParticipantStatisticsReporterBase_rch participant_stats);
+                  ParticipantStatisticsReporterBase& participant_stats);
 
   void horizontal_handler(HorizontalHandler* horizontal_handler) { horizontal_handler_ = horizontal_handler; }
 
@@ -325,7 +325,7 @@ public:
                              const std::string& name,
                              ACE_Reactor* reactor,
                              Governor& governor,
-                             ParticipantStatisticsReporterBase_rch participant_stats);
+                             ParticipantStatisticsReporterBase& participant_stats);
 
   void vertical_handler(VerticalHandler* vertical_handler) { vertical_handler_ = vertical_handler; }
   void enqueue_message(const ACE_INET_Addr& addr,
@@ -352,7 +352,7 @@ public:
               const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
               const CRYPTO_TYPE& crypto,
               const ACE_INET_Addr& application_participant_addr,
-              ParticipantStatisticsReporterBase_rch participant_stats);
+              ParticipantStatisticsReporterBase& participant_stats);
 
   void replay(const OpenDDS::DCPS::RepoId& from,
               const GuidSet& to);
@@ -393,7 +393,7 @@ public:
               const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
               const CRYPTO_TYPE& crypto,
               const ACE_INET_Addr& application_participant_addr,
-              ParticipantStatisticsReporterBase_rch participant_stats);
+              ParticipantStatisticsReporterBase& participant_stats);
 
 private:
   const ACE_INET_Addr application_participant_addr_;
@@ -416,7 +416,7 @@ public:
               GuidNameAddressDataReader_ptr responsible_relay_reader,
               const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
               const CRYPTO_TYPE& crypto,
-              ParticipantStatisticsReporterBase_rch participant_stats);
+              ParticipantStatisticsReporterBase& participant_stats);
 };
 
 #ifdef OPENDDS_SECURITY
@@ -427,7 +427,7 @@ public:
                        const std::string& name,
                        ACE_Reactor* reactor,
                        Governor& governor,
-                       ParticipantStatisticsReporterBase_rch participant_stats);
+                       ParticipantStatisticsReporterBase& participant_stats);
 
 private:
   void process_message(const ACE_INET_Addr& remote,

@@ -26,7 +26,7 @@
 namespace RtpsRelay {
 
 // This macro makes it easier to make sure the stats are updated when an error is logged
-#define HANDLER_ERROR(X) { ACE_ERROR (X); handler_statistics_->report_error(); }
+#define HANDLER_ERROR(X) { ACE_ERROR (X); handler_statistics_.report_error(); }
 
 #ifdef OPENDDS_SECURITY
 namespace {
@@ -61,14 +61,13 @@ RelayHandler::RelayHandler(const RelayHandlerConfig& config,
                            const std::string& name,
                            ACE_Reactor* reactor,
                            Governor& governor, 
-                           ParticipantStatisticsReporterBase_rch participant_stats)
+                           ParticipantStatisticsReporterBase& participant_stats)
   : ACE_Event_Handler(reactor)
   , governor_(governor)
   , config_(config)
   , name_(name)
   , participant_statistics_(participant_stats)
-  , handler_statistics_(OpenDDS::DCPS::make_rch<RelayHandlerStatistics>(
-      config.application_participant_guid(), name, config.handler_statistics_writer()))
+  , handler_statistics_(config.application_participant_guid(), name, config.handler_statistics_writer())
 {
 }
 
@@ -154,7 +153,7 @@ int RelayHandler::handle_input(ACE_HANDLE handle)
   }
 
   buffer->length(bytes);
-  handler_statistics_->update_input_msgs(static_cast<size_t>(bytes));
+  handler_statistics_.update_input_msgs(static_cast<size_t>(bytes));
  
   process_message(remote, OpenDDS::DCPS::MonotonicTimePoint::now(), buffer);
   return 0;
@@ -191,7 +190,7 @@ int RelayHandler::handle_output(ACE_HANDLE)
       HANDLER_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::handle_output %C failed to send to %C: %m\n"), name_.c_str(), addr_to_string(out.first).c_str()));
     } else {
       governor_.add_bytes(bytes);
-      handler_statistics_->update_output_msgs(static_cast<size_t>(bytes));
+      handler_statistics_.update_output_msgs(static_cast<size_t>(bytes));
     }
 
     outgoing_.pop();
@@ -211,8 +210,8 @@ int RelayHandler::handle_output(ACE_HANDLE)
       reactor()->remove_handler(this, WRITE_MASK);
       reactor()->schedule_timer(this, 0, d.value());
 
-      handler_statistics_->governor_active();
-      handler_statistics_->update_queue_latency(relay_duration);
+      handler_statistics_.governor_active();
+      handler_statistics_.update_queue_latency(relay_duration);
     }
   }
 
@@ -224,9 +223,9 @@ int RelayHandler::handle_timeout(const ACE_Time_Value& ace_now, const void* ptr)
   if (ptr == &this->handler_statistics_) {
     // Statistics.
     const OpenDDS::DCPS::MonotonicTimePoint now(ace_now);
-    handler_statistics_->update_local_participants(local_active_participants());
+    handler_statistics_.update_local_participants(local_active_participants());
 
-    handler_statistics_->report(now);
+    handler_statistics_.report(now);
     reset_statistics();
 
   } else {
@@ -239,7 +238,7 @@ int RelayHandler::handle_timeout(const ACE_Time_Value& ace_now, const void* ptr)
 
 void RelayHandler::reset_statistics()
 {
-  handler_statistics_->reset_stats();
+  handler_statistics_.reset_stats();
 }
 
 void RelayHandler::enqueue_message(const ACE_INET_Addr& addr, const OpenDDS::DCPS::Message_Block_Shared_Ptr& msg)
@@ -249,7 +248,7 @@ void RelayHandler::enqueue_message(const ACE_INET_Addr& addr, const OpenDDS::DCP
   const auto empty = outgoing_.empty();
 
   outgoing_.push(std::make_pair(addr, msg));
-  handler_statistics_->update_queue_size(static_cast<uint32_t>(outgoing_.size()));
+  handler_statistics_.update_queue_size(static_cast<uint32_t>(outgoing_.size()));
   if (empty) {
     reactor()->register_handler(this, WRITE_MASK);
   }
@@ -265,7 +264,7 @@ VerticalHandler::VerticalHandler(const RelayHandlerConfig& config,
                                  GuidNameAddressDataReader_ptr responsible_relay_reader,
                                  const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
                                  const CRYPTO_TYPE& crypto, 
-                                 ParticipantStatisticsReporterBase_rch participant_stats)
+                                 ParticipantStatisticsReporterBase& participant_stats)
   : RelayHandler(config, name, reactor, governor, participant_stats)
   , association_table_(association_table)
   , responsible_relay_writer_(responsible_relay_writer)
@@ -307,7 +306,7 @@ void VerticalHandler::process_message(const ACE_INET_Addr& remote,
   const GuidAddr ga(src_guid, remote);
 
   // Record the participant stats only if a valid message was received
-  participant_statistics_->update_input_msgs(ga, msg_len);
+  participant_statistics_.update_input_msgs(ga, msg_len);
 
   // Compute the new expiration time for this GuidAddr.
   const auto expiration = now + config_.lifespan();
@@ -539,7 +538,7 @@ ACE_INET_Addr VerticalHandler::read_address(const OpenDDS::DCPS::RepoId& guid) c
   const auto ret = responsible_relay_reader_->read_instance(received_data, info_seq, 1, handle,
                                                             DDS::ANY_SAMPLE_STATE, DDS::ANY_VIEW_STATE, DDS::ALIVE_INSTANCE_STATE);
   if (ret != DDS::RETCODE_OK) {
-    HANDLER_ERROR((LM_WARNING, ACE_TEXT("(%P|%t) %N:%l WARNING: VerticalHandler::read_address %C failed to read address for %C\n"), name_.c_str(), guid_to_string(guid).c_str()));
+    ACE_ERROR((LM_WARNING, ACE_TEXT("(%P|%t) %N:%l WARNING: VerticalHandler::read_address %C failed to read address for %C\n"), name_.c_str(), guid_to_string(guid).c_str()));
     return ACE_INET_Addr();
   }
 
@@ -577,7 +576,7 @@ HorizontalHandler::HorizontalHandler(const RelayHandlerConfig& config,
                                      const std::string& name,
                                      ACE_Reactor* reactor,
                                      Governor& governor, 
-                                     ParticipantStatisticsReporterBase_rch participant_stats)
+                                     ParticipantStatisticsReporterBase& participant_stats)
   : RelayHandler(config, name, reactor, governor, participant_stats)
   , vertical_handler_(nullptr)
 {}
@@ -655,7 +654,7 @@ SpdpHandler::SpdpHandler(const RelayHandlerConfig& config,
                          const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
                          const CRYPTO_TYPE& crypto,
                          const ACE_INET_Addr& application_participant_addr, 
-                         ParticipantStatisticsReporterBase_rch participant_stats)
+                         ParticipantStatisticsReporterBase& participant_stats)
 : VerticalHandler(config, name, address, reactor, governor, association_table, responsible_relay_writer, responsible_relay_reader, rtps_discovery, crypto, participant_stats)
 , application_participant_addr_(application_participant_addr)
 {}
@@ -775,7 +774,7 @@ SedpHandler::SedpHandler(const RelayHandlerConfig& config,
                          const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
                          const CRYPTO_TYPE& crypto,
                          const ACE_INET_Addr& application_participant_addr,
-                         ParticipantStatisticsReporterBase_rch participant_stats)
+                         ParticipantStatisticsReporterBase& participant_stats)
 : VerticalHandler(config, name, address, reactor, governor, association_table, responsible_relay_writer, responsible_relay_reader, rtps_discovery, crypto, participant_stats)
   , application_participant_addr_(application_participant_addr)
 {}
@@ -837,7 +836,7 @@ DataHandler::DataHandler(const RelayHandlerConfig& config,
                          GuidNameAddressDataReader_ptr responsible_relay_reader,
                          const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
                          const CRYPTO_TYPE& crypto,
-                         ParticipantStatisticsReporterBase_rch participant_stats)
+                         ParticipantStatisticsReporterBase& participant_stats)
 : VerticalHandler(config, name, address, reactor, governor, association_table, responsible_relay_writer, responsible_relay_reader, rtps_discovery, crypto, participant_stats)
 {}
 
@@ -847,7 +846,7 @@ StunHandler::StunHandler(const RelayHandlerConfig& config,
                          const std::string& name,
                          ACE_Reactor* reactor,
                          Governor& governor,
-                         ParticipantStatisticsReporterBase_rch participant_stats)
+                         ParticipantStatisticsReporterBase& participant_stats)
   : RelayHandler(config, name, reactor, governor, participant_stats)
 {}
 

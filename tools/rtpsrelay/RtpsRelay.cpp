@@ -467,11 +467,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     Governor governor(max_throughput * 1024 * 1024);
 
    // Create the statistics classes and register them with the handlers
-    ParticipantStatisticsReporter_rch participant_stats_reporter = OpenDDS::DCPS::make_rch<ParticipantStatisticsReporter>();
+    ParticipantStatisticsReporter participant_stats_reporter;
     StatsScheduler participants_timer(config.statistics_interval(), participant_stats_reporter, reactor);
 
     // This is a stub used so that only veritical handlers update participant stats
-    ParticipantStatisticsReporterBase_rch participant_stats_stub = OpenDDS::DCPS::make_rch<ParticipantStatisticsReporterBase>();
+    ParticipantStatisticsReporterBase participant_stats_stub;
 
 
     // Setup readers and writers for managing the association table.
@@ -530,6 +530,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 
     DDS::DataReader_var participant_reader = bit_subscriber->lookup_datareader(OpenDDS::DCPS::BUILT_IN_PARTICIPANT_TOPIC);
     DomainStatisticsWriter domain_statistics_writer(config);
+    StatsScheduler domain_stats_timer(config.statistics_interval(), domain_statistics_writer, reactor);
+
     DDS::DataReaderListener_var participant_listener = new ParticipantListener(domain_statistics_writer);
     DDS::ReturnCode_t ret = participant_reader->set_listener(participant_listener, DDS::DATA_AVAILABLE_STATUS);
     if (ret != DDS::RETCODE_OK) {
@@ -637,7 +639,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 #endif
 
     // Schedule the stats timers
-    //participants_timer.start();
+    participants_timer.start();
+    domain_stats_timer.start();
     reactor->run_reactor_event_loop();
   } 
 

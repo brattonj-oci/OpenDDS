@@ -17,7 +17,7 @@ public:
   static const long INVALID_TIMER_ID = -1l;
 
   StatsScheduler(const OpenDDS::DCPS::TimeDuration& interval_sec, 
-                 StatisticsReporter_rch reporter,
+                 StatisticsReporter& reporter,
                  ACE_Reactor* reactor)
     : ACE_Event_Handler(reactor)
     , statistics_interval_(interval_sec)
@@ -48,15 +48,15 @@ public:
   {
     // Report the stats
     const OpenDDS::DCPS::MonotonicTimePoint now(ace_now);
-    stats_reporter_->report(now);
-    stats_reporter_->reset_stats();
+    stats_reporter_.report(now);
+    stats_reporter_.reset_stats();
 
     return 0;
   }
 
 private:
   OpenDDS::DCPS::TimeDuration statistics_interval_;
-  StatisticsReporter_rch stats_reporter_;
+  StatisticsReporter& stats_reporter_;
   long timer_id_;
 };
 
