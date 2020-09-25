@@ -65,10 +65,8 @@ module RtpsRelay {
     unsigned long nanosec;
   };
 
-  // @topic
+  @topic
   struct ParticipantStatistics {
-    // Make the address a @key
-    // Add a GUID @key
     @key GUID_t guid;
     @key string address;
     unsigned long messages_in;
@@ -94,10 +92,8 @@ module RtpsRelay {
     unsigned long max_queue_size;
     Duration_t max_queue_latency;
     unsigned long local_active_participants;
-    // Remove these
-    //ParticipantStatisticsSequence participant_statistics;
-    // Add these
-    // Error counts
+    unsigned long error_count;
+    unsigned long governor_count;
   };
 
   @topic

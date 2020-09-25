@@ -16,7 +16,8 @@ class RelayHandlerStatistics : public StatisticsReporter {
 public:
   
   explicit RelayHandlerStatistics(const OpenDDS::DCPS::RepoId& participant_guid,
-                                  const std::string& name);
+                                  const std::string& name,
+                                  HandlerStatisticsDataWriter_ptr writer);
 
   virtual ~RelayHandlerStatistics();
   
@@ -28,7 +29,10 @@ public:
   void update_queue_latency(const Duration_t& updated_latency);
   
   void update_local_participants(uint32_t num_participants);
-   
+  
+  void governor_active();
+  void report_error();
+
   void report(const OpenDDS::DCPS::MonotonicTimePoint& time_now);
   void reset_stats();
 
@@ -37,9 +41,13 @@ private:
   void log_stats(HandlerStatistics& to);
   void copy_stats(HandlerStatistics& to);
 
+  HandlerStatisticsDataWriter_ptr writer_;
+
   HandlerStatistics handler_stats_;
 
   std::string particpant_name_;
+
+  OpenDDS::DCPS::MonotonicTimePoint last_report_time_;
 
   ACE_Thread_Mutex stats_mutex_;
 };

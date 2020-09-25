@@ -9,21 +9,8 @@
 
 namespace RtpsRelay {
 
-// // Add support for std::max to Duration_t
-// bool operator<(const Duration_t& x, const Duration_t& y)
-// {
-//   if (x.sec() != y.sec()) {
-//     return x.sec() < y.sec();
-//   }
-//   return x.nanosec() < y.nanosec();
-// }
-
 ParticipantStatisticsReporter::ParticipantStatisticsReporter()
 {
-  //handler_stats_.application_participant_guid(repoid_to_guid(participant_guid));
-  //handler_stats_.name(name);
-  //particpant_name_ = guid_to_string(
-  //  guid_to_repoid(handler_stats_.application_participant_guid()));
 }
  
 ParticipantStatisticsReporter::~ParticipantStatisticsReporter()
@@ -62,14 +49,6 @@ void ParticipantStatisticsReporter::update_queue_size(const GuidAddr& participan
 
   // ParticipantStatistics& stats = get_stats(participant_guid);
   // stats._max_queue_size = std::max(stats._max_queue_size, value);
-}
-
-void ParticipantStatisticsReporter::update_queue_latency(const GuidAddr& participant, const Duration_t& updated_latency)
-{
-  //ACE_GUARD(ACE_Thread_Mutex, g, stats_mutex_);
-
-  //ParticipantStatistics& stats = get_stats(participant_guid);
-  //stats._max_queue_latency = std::max(stats._max_queue_latency, updated_latency);
 }
 
 void ParticipantStatisticsReporter::report(const OpenDDS::DCPS::MonotonicTimePoint& time_now)

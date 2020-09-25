@@ -13,7 +13,7 @@ public:
   virtual ~StatisticsReporter() {}
 
   virtual void report(const OpenDDS::DCPS::MonotonicTimePoint& time_now) = 0;
-
+  virtual void reset_stats();
 protected:
 
   explicit StatisticsReporter() {}
