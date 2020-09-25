@@ -22,8 +22,7 @@ public:
   virtual void update_output_msgs(const GuidAddr& participant, size_t byte_count);
 
   virtual void update_fan_out(const GuidAddr& participant, uint32_t value);
-  virtual void update_queue_size(const GuidAddr& participant, uint32_t value);
-     
+   
   virtual void report(const OpenDDS::DCPS::MonotonicTimePoint& time_now);
   virtual void reset_stats();
 

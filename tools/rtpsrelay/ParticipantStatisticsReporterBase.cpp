@@ -29,12 +29,6 @@ void ParticipantStatisticsReporterBase::update_fan_out(const GuidAddr& participa
   ACE_UNUSED_ARG(value);
 }
 
-void ParticipantStatisticsReporterBase::update_queue_size(const GuidAddr& participant, uint32_t value)
-{
-  ACE_UNUSED_ARG(participant);
-  ACE_UNUSED_ARG(value);
-}
-
 void ParticipantStatisticsReporterBase::report(const OpenDDS::DCPS::MonotonicTimePoint& time_now)
 {
   ACE_UNUSED_ARG(time_now);

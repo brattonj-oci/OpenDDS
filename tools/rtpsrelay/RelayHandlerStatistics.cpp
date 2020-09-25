@@ -101,6 +101,9 @@ void RelayHandlerStatistics::report(const OpenDDS::DCPS::MonotonicTimePoint& tim
   const auto dds_duration = duration.to_dds_duration();
   last_report_time_ = time_now;
 
+  ACE_TCHAR timestamp[OpenDDS::DCPS::AceTimestampSize];
+  ACE::timestamp(timestamp, sizeof(timestamp) / sizeof(ACE_TCHAR));
+
   handler_stats_._interval._sec = dds_duration.sec;
   handler_stats_._interval._nanosec = dds_duration.nanosec;
   
@@ -111,9 +114,6 @@ void RelayHandlerStatistics::report(const OpenDDS::DCPS::MonotonicTimePoint& tim
     }
   }  
   
-  ACE_TCHAR timestamp[OpenDDS::DCPS::AceTimestampSize];
-  ACE::timestamp(timestamp, sizeof(timestamp) / sizeof(ACE_TCHAR));
-
   // Log the stats to the console
   std::cout << timestamp << ' '
             << "application_participant_guid=" << particpant_name_ << ' '

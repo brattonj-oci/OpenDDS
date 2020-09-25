@@ -68,7 +68,7 @@ module RtpsRelay {
   @topic
   struct ParticipantStatistics {
     @key GUID_t guid;
-    @key string address;
+    //@key string address;
     unsigned long messages_in;
     unsigned long long bytes_in;
     unsigned long messages_out;
@@ -76,7 +76,7 @@ module RtpsRelay {
     unsigned long max_fan_out;
     unsigned long error_count;
     Duration_t interval;
-    Duration_t max_queue_latency;
+    //last activity timestamp
   };
 
   @topic
