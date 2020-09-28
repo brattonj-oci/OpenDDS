@@ -76,6 +76,7 @@ module RtpsRelay {
     unsigned long max_fan_out;
     unsigned long error_count;
     Duration_t interval;
+    //string last_activity_timestamp;
     //last activity timestamp
   };
 
@@ -105,4 +106,12 @@ module RtpsRelay {
     unsigned long total_writers;
     unsigned long total_readers;
   };
+
+  @topic
+  struct ParticipantEntry
+   {
+    @key GUID_t guid;
+    DDS::UserDataQosPolicy user_data;
+  };
+
 };

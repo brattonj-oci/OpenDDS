@@ -17,15 +17,16 @@ public:
 
   virtual ~ParticipantStatisticsReporterBase();
   
-  virtual void update_input_msgs(const GuidAddr& participant, size_t byte_count);
+  virtual void update_input_msgs(const OpenDDS::DCPS::RepoId& participant, size_t byte_count);
 
-  virtual void update_output_msgs(const GuidAddr& participant, size_t byte_count);
+  virtual void update_output_msgs(const OpenDDS::DCPS::RepoId& participant, size_t byte_count);
 
-  virtual void update_fan_out(const GuidAddr& participant, uint32_t value);
+  virtual void update_fan_out(const OpenDDS::DCPS::RepoId& participant, uint32_t value);
    
   virtual void report(const OpenDDS::DCPS::MonotonicTimePoint& time_now);
   virtual void reset_stats();
 
+  virtual void remove_participant(const OpenDDS::DCPS::RepoId& guid);
 };
 
 typedef OpenDDS::DCPS::RcHandle<ParticipantStatisticsReporterBase> ParticipantStatisticsReporterBase_rch;

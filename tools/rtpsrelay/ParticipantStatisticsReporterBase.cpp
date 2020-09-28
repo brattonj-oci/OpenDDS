@@ -11,19 +11,19 @@ ParticipantStatisticsReporterBase::~ParticipantStatisticsReporterBase()
 {
 }
 
-void ParticipantStatisticsReporterBase::update_input_msgs(const GuidAddr& participant, size_t byte_count)
+void ParticipantStatisticsReporterBase::update_input_msgs(const OpenDDS::DCPS::RepoId& participant, size_t byte_count)
 {
   ACE_UNUSED_ARG(participant);
   ACE_UNUSED_ARG(byte_count);
 }
 
-void ParticipantStatisticsReporterBase::update_output_msgs(const GuidAddr& participant, size_t byte_count)
+void ParticipantStatisticsReporterBase::update_output_msgs(const OpenDDS::DCPS::RepoId& participant, size_t byte_count)
 {
   ACE_UNUSED_ARG(participant);
   ACE_UNUSED_ARG(byte_count);
 }
   
-void ParticipantStatisticsReporterBase::update_fan_out(const GuidAddr& participant, uint32_t value)
+void ParticipantStatisticsReporterBase::update_fan_out(const OpenDDS::DCPS::RepoId& participant, uint32_t value)
 {
   ACE_UNUSED_ARG(participant);
   ACE_UNUSED_ARG(value);
@@ -36,6 +36,11 @@ void ParticipantStatisticsReporterBase::report(const OpenDDS::DCPS::MonotonicTim
 
 void ParticipantStatisticsReporterBase::reset_stats()
 {
+}
+
+void ParticipantStatisticsReporterBase::remove_participant(const OpenDDS::DCPS::RepoId& guid)
+{
+  ACE_UNUSED_ARG(guid);
 }
 
 } // namespace RtpsRelay

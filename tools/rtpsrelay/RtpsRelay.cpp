@@ -327,6 +327,24 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     return EXIT_FAILURE;
   }
 
+  ParticipantEntryTypeSupport_var participant_entry_ts = new ParticipantEntryTypeSupportImpl;
+  if (participant_entry_ts->register_type(relay_participant, "") != DDS::RETCODE_OK) {
+    ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to register ParticipantEntry type\n")));
+    return EXIT_FAILURE;
+  }
+  CORBA::String_var participant_entry_type_name = participant_entry_ts->get_type_name();
+
+  DDS::Topic_var participant_entry_topic =
+    relay_participant->create_topic("Participant Entry",
+                                    participant_entry_type_name,
+                                    TOPIC_QOS_DEFAULT, nullptr,
+                                    OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+
+  if (!participant_entry_topic) {
+    ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Particpant Entry topic\n")));
+    return EXIT_FAILURE;
+  }
+
   // Setup relay publisher and subscriber.
   DDS::Publisher_var relay_publisher = relay_participant->create_publisher(PUBLISHER_QOS_DEFAULT, nullptr,
                                                                            OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -368,6 +386,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     }
 
     if (!config.participant_statistics_writer(relay_publisher->create_datawriter(participant_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
+      return EXIT_FAILURE;
+    }
+
+    if (!config.participant_entry_writer(relay_publisher->create_datawriter(participant_entry_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
       return EXIT_FAILURE;
     }
   }
@@ -459,11 +481,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     AssociationTable association_table;
     Governor governor(max_throughput * 1024 * 1024);
 
-   // Create the statistics classes and register them with the handlers
-    ParticipantStatisticsReporter participant_stats_reporter;
+    // Create the statistics classes and register them with the handlers
+    // A stub is used for horizontal handlers
+    ParticipantStatisticsReporter participant_stats_reporter(config.participant_statistics_writer(), config.log_relay_statistics());
     StatsScheduler participants_timer(config.statistics_interval(), participant_stats_reporter, reactor);
-
-    // This is a stub used so that only veritical handlers update participant stats
     ParticipantStatisticsReporterBase participant_stats_stub;
 
 
@@ -622,7 +643,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     participants_timer.start();
     domain_stats_timer.start();
     reactor->run_reactor_event_loop();
-  } 
+  }
 
   return EXIT_SUCCESS;
 }

@@ -33,6 +33,7 @@ public:
     : statistics_interval_(60) // 1 minute
     , handler_statistics_writer_(nullptr)
     , domain_statistics_writer_(nullptr)
+    , participant_entry_writer_(nullptr)
     , application_participant_guid_(OpenDDS::DCPS::GUID_UNKNOWN)
     , lifespan_(60) // 1 minute
     , application_domain_(1)
@@ -119,6 +120,29 @@ public:
     return participant_statistics_writer_;
   }
 
+  bool participant_entry_writer(DDS::DataWriter_var writer_var)
+  {
+    if (!writer_var) {
+      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Participant Entry data writer\n")));
+      return EXIT_FAILURE;
+    }
+
+    participant_entry_writer_ = ParticipantEntryDataWriter::_narrow(writer_var);
+
+    if (!participant_entry_writer_) {
+      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to narrow Participant Entry data writer\n")));
+      return EXIT_FAILURE;
+    }
+
+    participant_entry_writer_var_ = writer_var;
+    return true;
+  }
+
+  //ParticipantStatisticsDataWriter_ptr participant_entry_writer() const
+  //{
+  //  return participant_entry_writer_;
+  //}
+
   void application_participant_guid(const OpenDDS::DCPS::RepoId& flag)
   {
     application_participant_guid_ = flag;
@@ -173,11 +197,12 @@ private:
   OpenDDS::DCPS::TimeDuration statistics_interval_;
   DDS::DataWriter_var handler_statistics_writer_var_;
   HandlerStatisticsDataWriter_ptr handler_statistics_writer_;
-  DDS::DataWriter_var participant_statistics_writer_var_;
   DDS::DataWriter_var domain_statistics_writer_var_;
   DomainStatisticsDataWriter_ptr domain_statistics_writer_;
-  DDS::DataWriter_var participant_statistics_writer_var;
+  DDS::DataWriter_var participant_statistics_writer_var_;
   ParticipantStatisticsDataWriter_ptr participant_statistics_writer_;
+  DDS::DataWriter_var participant_entry_writer_var_;
+  ParticipantEntryDataWriter_ptr participant_entry_writer_;
   OpenDDS::DCPS::RepoId application_participant_guid_;
   OpenDDS::DCPS::TimeDuration lifespan_;
   DDS::DomainId_t application_domain_;
@@ -229,7 +254,7 @@ private:
   typedef std::queue<std::pair<ACE_INET_Addr, OpenDDS::DCPS::Message_Block_Shared_Ptr>> OutgoingType;
   OutgoingType outgoing_;
   ACE_Thread_Mutex outgoing_mutex_;
-  
+
 protected:
   const RelayHandlerConfig& config_;
   const std::string name_;
@@ -282,7 +307,8 @@ protected:
                        const OpenDDS::DCPS::Message_Block_Shared_Ptr& msg) override;
   void record_activity(const ACE_INET_Addr& remote_address,
                        const OpenDDS::DCPS::MonotonicTimePoint& now,
-                       const OpenDDS::DCPS::RepoId& src_guid);
+                       const OpenDDS::DCPS::RepoId& src_guid,
+                       const size_t& msg_len);
   void send(const ACE_INET_Addr& from,
             const GuidSet& to,
             const OpenDDS::DCPS::Message_Block_Shared_Ptr& msg);

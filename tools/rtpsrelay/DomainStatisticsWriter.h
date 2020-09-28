@@ -65,19 +65,23 @@ public:
 
   void report(const OpenDDS::DCPS::MonotonicTimePoint& time_now) override
   {
+    ACE_UNUSED_ARG(time_now);
     write_sample();
 
-    ACE_TCHAR timestamp[OpenDDS::DCPS::AceTimestampSize];
-    ACE::timestamp(timestamp, sizeof(timestamp) / sizeof(ACE_TCHAR));
+    if (config_.log_relay_statistics()) {
+      ACE_TCHAR timestamp[OpenDDS::DCPS::AceTimestampSize];
+      ACE::timestamp(timestamp, sizeof(timestamp) / sizeof(ACE_TCHAR));
 
-    std::cout << timestamp << ' '
-              << "application_participant_guid=" << guid_to_string(guid_to_repoid(domain_statistics_.application_participant_guid())) << ' '
-              << "local_participants=" << domain_statistics_.local_participants() << ' '
-              << "local_writers=" << domain_statistics_.local_writers() << ' '
-              << "local_readers=" << domain_statistics_.local_readers() << ' '
-              << "total_writers=" << domain_statistics_.total_writers() << ' '
-              << "total_readers=" << domain_statistics_.total_readers() << ' '
-              << std::endl;
+
+      std::cout << timestamp << ' '
+                << "application_participant_guid=" << guid_to_string(guid_to_repoid(domain_statistics_.application_participant_guid())) << ' '
+                << "local_participants=" << domain_statistics_.local_participants() << ' '
+                << "local_writers=" << domain_statistics_.local_writers() << ' '
+                << "local_readers=" << domain_statistics_.local_readers() << ' '
+                << "total_writers=" << domain_statistics_.total_writers() << ' '
+                << "total_readers=" << domain_statistics_.total_readers() << ' '
+                << std::endl;
+    }
   }
 
   void reset_stats() override

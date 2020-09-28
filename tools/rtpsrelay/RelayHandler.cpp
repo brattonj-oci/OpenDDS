@@ -60,14 +60,14 @@ namespace {
 RelayHandler::RelayHandler(const RelayHandlerConfig& config,
                            const std::string& name,
                            ACE_Reactor* reactor,
-                           Governor& governor, 
+                           Governor& governor,
                            ParticipantStatisticsReporterBase& participant_stats)
   : ACE_Event_Handler(reactor)
   , governor_(governor)
   , config_(config)
   , name_(name)
   , participant_statistics_(participant_stats)
-  , handler_statistics_(config.application_participant_guid(), name, config.handler_statistics_writer())
+  , handler_statistics_(config.application_participant_guid(), name, config.handler_statistics_writer(), config.log_relay_statistics())
 {
 }
 
@@ -101,7 +101,7 @@ int RelayHandler::open(const ACE_INET_Addr& address)
     return -1;
   }
 
-  if (config_.handler_statistics_writer() || config_.publish_relay_statistics()) {
+  if (config_.log_relay_statistics() || config_.publish_relay_statistics()) {
     reset_statistics();
     if (reactor()->schedule_timer(this, &this->handler_statistics_, config_.statistics_interval().value(), config_.statistics_interval().value()) == -1) {
       ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: RelayHandler::open %C failed to register schedule statistics timer\n"), name_.c_str()));
@@ -154,7 +154,7 @@ int RelayHandler::handle_input(ACE_HANDLE handle)
 
   buffer->length(bytes);
   handler_statistics_.update_input_msgs(static_cast<size_t>(bytes));
- 
+
   process_message(remote, OpenDDS::DCPS::MonotonicTimePoint::now(), buffer);
   return 0;
 }
@@ -263,7 +263,7 @@ VerticalHandler::VerticalHandler(const RelayHandlerConfig& config,
                                  GuidNameAddressDataWriter_ptr responsible_relay_writer,
                                  GuidNameAddressDataReader_ptr responsible_relay_reader,
                                  const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
-                                 const CRYPTO_TYPE& crypto, 
+                                 const CRYPTO_TYPE& crypto,
                                  ParticipantStatisticsReporterBase& participant_stats)
   : RelayHandler(config, name, reactor, governor, participant_stats)
   , association_table_(association_table)
@@ -285,10 +285,11 @@ void VerticalHandler::process_message(const ACE_INET_Addr& remote_address,
                                       const OpenDDS::DCPS::MonotonicTimePoint& now,
                                       const OpenDDS::DCPS::Message_Block_Shared_Ptr& msg)
 {
-  if (msg->length() >= 4 && ACE_OS::memcmp(msg->rd_ptr(), "RTPS", 4) == 0) {
+  const auto msg_len = msg->length();
+  if (msg_len >= 4 && ACE_OS::memcmp(msg->rd_ptr(), "RTPS", 4) == 0) {
     OpenDDS::DCPS::RepoId src_guid;
     GuidSet to;
-    auto msg_len = msg->length();
+
 
     OpenDDS::RTPS::MessageParser mp(*msg);
     if (!parse_message(mp, msg, src_guid, to, true)) {
@@ -296,7 +297,7 @@ void VerticalHandler::process_message(const ACE_INET_Addr& remote_address,
       return;
     }
 
-    record_activity(remote_address, now, src_guid);
+    record_activity(remote_address, now, src_guid, msg_len);
 
     if (do_normal_processing(remote_address, src_guid, to, msg)) {
       association_table_.lookup_destinations(to, src_guid);
@@ -358,14 +359,15 @@ void VerticalHandler::process_message(const ACE_INET_Addr& remote_address,
     OpenDDS::DCPS::RepoId src_guid;
     if (message.get_guid_prefix(src_guid.guidPrefix)) {
       src_guid.entityId = OpenDDS::DCPS::ENTITYID_PARTICIPANT;
-      record_activity(remote_address, now, src_guid);
+      record_activity(remote_address, now, src_guid, msg_len);
     }
   }
 }
 
 void VerticalHandler::record_activity(const ACE_INET_Addr& remote_address,
                                       const OpenDDS::DCPS::MonotonicTimePoint& now,
-                                      const OpenDDS::DCPS::RepoId& src_guid)
+                                      const OpenDDS::DCPS::RepoId& src_guid,
+                                      const size_t& msg_len)
 {
   {
     const auto res = guid_addr_set_map_[src_guid].insert(remote_address);
@@ -374,10 +376,10 @@ void VerticalHandler::record_activity(const ACE_INET_Addr& remote_address,
     }
   }
 
-  const GuidAddr ga(src_guid, remote_address);
-
   // Record the participant stats only if a valid message was received
-  participant_statistics_.update_input_msgs(ga, msg_len);
+  participant_statistics_.update_input_msgs(src_guid, msg_len);
+
+  const GuidAddr ga(src_guid, remote_address);
 
   // Compute the new expiration time for this GuidAddr.
   const auto expiration = now + config_.lifespan();
@@ -413,6 +415,7 @@ void VerticalHandler::record_activity(const ACE_INET_Addr& remote_address,
       guid_addr_set_map_.erase(pos->second.guid);
       unregister_address(pos->second.guid);
       purge(pos->second.guid);
+      participant_statistics_.remove_participant(pos->second.guid);
     }
     guid_addr_expiration_map_.erase(pos->second);
     expiration_guid_addr_map_.erase(pos++);
@@ -641,7 +644,7 @@ void VerticalHandler::unregister_address(const OpenDDS::DCPS::RepoId& guid)
 HorizontalHandler::HorizontalHandler(const RelayHandlerConfig& config,
                                      const std::string& name,
                                      ACE_Reactor* reactor,
-                                     Governor& governor, 
+                                     Governor& governor,
                                      ParticipantStatisticsReporterBase& participant_stats)
   : RelayHandler(config, name, reactor, governor, participant_stats)
   , vertical_handler_(nullptr)
@@ -719,7 +722,7 @@ SpdpHandler::SpdpHandler(const RelayHandlerConfig& config,
                          GuidNameAddressDataReader_ptr responsible_relay_reader,
                          const OpenDDS::RTPS::RtpsDiscovery_rch& rtps_discovery,
                          const CRYPTO_TYPE& crypto,
-                         const ACE_INET_Addr& application_participant_addr, 
+                         const ACE_INET_Addr& application_participant_addr,
                          ParticipantStatisticsReporterBase& participant_stats)
 : VerticalHandler(config, name, address, reactor, governor, association_table, responsible_relay_writer, responsible_relay_reader, rtps_discovery, crypto, participant_stats)
 , application_participant_addr_(application_participant_addr)
