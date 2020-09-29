@@ -16,7 +16,7 @@ class StatsScheduler : public ACE_Event_Handler {
 public:
   static const long INVALID_TIMER_ID = -1l;
 
-  StatsScheduler(const OpenDDS::DCPS::TimeDuration& interval_sec, 
+  StatsScheduler(const OpenDDS::DCPS::TimeDuration& interval_sec,
                  StatisticsReporter& reporter,
                  ACE_Reactor* reactor)
     : ACE_Event_Handler(reactor)
@@ -26,7 +26,7 @@ public:
   {}
 
   virtual ~StatsScheduler() { stop(); }
-  void start() 
+  void start()
   {
     // Register for a timer callback at the given interval
     timer_id_ = reactor()->schedule_timer(this, 0, statistics_interval_.value(), statistics_interval_.value());
@@ -35,7 +35,7 @@ public:
     }
   }
 
-  void stop() 
+  void stop()
   {
     // Cleanup the handler
     if (INVALID_TIMER_ID != timer_id_ ) {

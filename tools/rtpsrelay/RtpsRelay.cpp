@@ -77,7 +77,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   std::size_t max_throughput = 80; // in MBps
   bool run_relay = true;
   bool publish_relay_statistics = true;
-  bool report_relay_statistics = false;
   RelayHandlerConfig config;
 
 #ifdef OPENDDS_SECURITY
@@ -129,7 +128,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     } else if ((arg = args.get_the_parameter("-ReportStatistics"))) {
       bool flag = ACE_OS::atoi(arg);
       config.log_relay_statistics(flag);
-      report_relay_statistics = flag;
       args.consume_arg();
 #ifdef OPENDDS_SECURITY
     } else if ((arg = args.get_the_parameter("-IdentityCA"))) {
@@ -375,6 +373,18 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   reader_qos.durability.kind = DDS::TRANSIENT_LOCAL_DURABILITY_QOS;
   reader_qos.reliability.kind = DDS::RELIABLE_RELIABILITY_QOS;
 
+  auto participant_entry_writer_var = relay_publisher->create_datawriter(participant_entry_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    if (!participant_entry_writer_var) {
+      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Participant Entry data writer\n")));
+      return EXIT_FAILURE;
+  }
+
+  ParticipantEntryDataWriter_ptr participant_entry_writer = ParticipantEntryDataWriter::_narrow(participant_entry_writer_var);
+  if (!participant_entry_writer) {
+    ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to narrow Participant Entry data writer\n")));
+    return EXIT_FAILURE;
+  }
+
   // Setup statistics publishing.
   if (publish_relay_statistics) {
     if (!config.handler_statistics_writer(relay_publisher->create_datawriter(handler_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
@@ -386,10 +396,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     }
 
     if (!config.participant_statistics_writer(relay_publisher->create_datawriter(participant_statistics_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
-      return EXIT_FAILURE;
-    }
-
-    if (!config.participant_entry_writer(relay_publisher->create_datawriter(participant_entry_topic, writer_qos, nullptr, OpenDDS::DCPS::DEFAULT_STATUS_MASK))) {
       return EXIT_FAILURE;
     }
   }
@@ -542,7 +548,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     DomainStatisticsWriter domain_statistics_writer(config);
     StatsScheduler domain_stats_timer(config.statistics_interval(), domain_statistics_writer, reactor);
 
-    DDS::DataReaderListener_var participant_listener = new ParticipantListener(domain_statistics_writer);
+    DDS::DataReaderListener_var participant_listener = new ParticipantListener(application_participant_impl,
+                                                                               domain_statistics_writer,
+                                                                               participant_entry_writer);
     DDS::ReturnCode_t ret = participant_reader->set_listener(participant_listener, DDS::DATA_AVAILABLE_STATUS);
     if (ret != DDS::RETCODE_OK) {
       ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: Failed to set listener on ParticipantBuiltinTopicDataDataReader\n")));

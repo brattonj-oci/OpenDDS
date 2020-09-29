@@ -68,7 +68,6 @@ module RtpsRelay {
   @topic
   struct ParticipantStatistics {
     @key GUID_t guid;
-    //@key string address;
     unsigned long messages_in;
     unsigned long long bytes_in;
     unsigned long messages_out;
@@ -108,8 +107,7 @@ module RtpsRelay {
   };
 
   @topic
-  struct ParticipantEntry
-   {
+  struct ParticipantEntry {
     @key GUID_t guid;
     DDS::UserDataQosPolicy user_data;
   };

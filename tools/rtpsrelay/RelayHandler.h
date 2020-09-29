@@ -33,7 +33,8 @@ public:
     : statistics_interval_(60) // 1 minute
     , handler_statistics_writer_(nullptr)
     , domain_statistics_writer_(nullptr)
-    , participant_entry_writer_(nullptr)
+    , participant_statistics_writer_(nullptr)
+    //, participant_entry_writer_(nullptr)
     , application_participant_guid_(OpenDDS::DCPS::GUID_UNKNOWN)
     , lifespan_(60) // 1 minute
     , application_domain_(1)
@@ -120,28 +121,28 @@ public:
     return participant_statistics_writer_;
   }
 
-  bool participant_entry_writer(DDS::DataWriter_var writer_var)
-  {
-    if (!writer_var) {
-      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Participant Entry data writer\n")));
-      return EXIT_FAILURE;
-    }
+  // bool participant_entry_writer(DDS::DataWriter_var writer_var)
+  // {
+  //   if (!writer_var) {
+  //     ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to create Participant Entry data writer\n")));
+  //     return EXIT_FAILURE;
+  //   }
 
-    participant_entry_writer_ = ParticipantEntryDataWriter::_narrow(writer_var);
+  //   participant_entry_writer_ = ParticipantEntryDataWriter::_narrow(writer_var);
 
-    if (!participant_entry_writer_) {
-      ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to narrow Participant Entry data writer\n")));
-      return EXIT_FAILURE;
-    }
+  //   if (!participant_entry_writer_) {
+  //     ACE_ERROR((LM_ERROR, ACE_TEXT("(%P|%t) %N:%l ERROR: failed to narrow Participant Entry data writer\n")));
+  //     return EXIT_FAILURE;
+  //   }
 
-    participant_entry_writer_var_ = writer_var;
-    return true;
-  }
+  //   participant_entry_writer_var_ = writer_var;
+  //   return true;
+  // }
 
-  //ParticipantStatisticsDataWriter_ptr participant_entry_writer() const
-  //{
+  // ParticipantStatisticsDataWriter_ptr participant_entry_writer() const
+  // {
   //  return participant_entry_writer_;
-  //}
+  // }
 
   void application_participant_guid(const OpenDDS::DCPS::RepoId& flag)
   {
@@ -201,8 +202,8 @@ private:
   DomainStatisticsDataWriter_ptr domain_statistics_writer_;
   DDS::DataWriter_var participant_statistics_writer_var_;
   ParticipantStatisticsDataWriter_ptr participant_statistics_writer_;
-  DDS::DataWriter_var participant_entry_writer_var_;
-  ParticipantEntryDataWriter_ptr participant_entry_writer_;
+  //DDS::DataWriter_var participant_entry_writer_var_;
+  //ParticipantEntryDataWriter_ptr participant_entry_writer_;
   OpenDDS::DCPS::RepoId application_participant_guid_;
   OpenDDS::DCPS::TimeDuration lifespan_;
   DDS::DomainId_t application_domain_;

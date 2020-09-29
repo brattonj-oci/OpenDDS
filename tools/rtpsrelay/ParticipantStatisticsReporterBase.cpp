@@ -6,7 +6,7 @@ namespace RtpsRelay {
 ParticipantStatisticsReporterBase::ParticipantStatisticsReporterBase()
 {
 }
- 
+
 ParticipantStatisticsReporterBase::~ParticipantStatisticsReporterBase()
 {
 }
@@ -22,7 +22,7 @@ void ParticipantStatisticsReporterBase::update_output_msgs(const OpenDDS::DCPS::
   ACE_UNUSED_ARG(participant);
   ACE_UNUSED_ARG(byte_count);
 }
-  
+
 void ParticipantStatisticsReporterBase::update_fan_out(const OpenDDS::DCPS::RepoId& participant, uint32_t value)
 {
   ACE_UNUSED_ARG(participant);
