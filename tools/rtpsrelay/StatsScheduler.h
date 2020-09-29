@@ -46,6 +46,8 @@ public:
 
   int handle_timeout(const ACE_Time_Value& ace_now, const void* arg) override
   {
+    ACE_UNUSED_ARG(arg);
+
     // Report the stats
     const OpenDDS::DCPS::MonotonicTimePoint now(ace_now);
     stats_reporter_.report(now);

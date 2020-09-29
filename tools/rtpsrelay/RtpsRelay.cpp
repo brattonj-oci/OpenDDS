@@ -31,6 +31,7 @@
 #include <ace/Select_Reactor.h>
 
 #include <cstdlib>
+#include <algorithm>
 
 #ifdef OPENDDS_SECURITY
 #include <dds/DCPS/security/framework/Properties.h>
@@ -75,6 +76,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   ACE_INET_Addr nic_horizontal, nic_vertical;
   std::string user_data;
   std::size_t max_throughput = 80; // in MBps
+  unsigned int max_participant_reports = 10U;
+  unsigned int participant_report_events_per_interval = 2U;
   bool run_relay = true;
   bool publish_relay_statistics = true;
   RelayHandlerConfig config;
@@ -128,6 +131,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     } else if ((arg = args.get_the_parameter("-ReportStatistics"))) {
       bool flag = ACE_OS::atoi(arg);
       config.log_relay_statistics(flag);
+      args.consume_arg();
+    } else if ((arg = args.get_the_parameter("-ParticipantReportLimit"))) {
+      max_participant_reports = static_cast<unsigned int>(ACE_OS::atoi(arg));
+      args.consume_arg();
+    } else if ((arg = args.get_the_parameter("-ParticipantReportEventFactor"))) {
+      participant_report_events_per_interval = static_cast<unsigned int>(ACE_OS::atoi(arg));
       args.consume_arg();
 #ifdef OPENDDS_SECURITY
     } else if ((arg = args.get_the_parameter("-IdentityCA"))) {
@@ -488,10 +497,23 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     Governor governor(max_throughput * 1024 * 1024);
 
     // Create the statistics classes and register them with the handlers
-    // A stub is used for horizontal handlers
-    ParticipantStatisticsReporter participant_stats_reporter(config.participant_statistics_writer(), config.log_relay_statistics());
-    StatsScheduler participants_timer(config.statistics_interval(), participant_stats_reporter, reactor);
+    // A stub is used for horizontal handlers.  The scheduler for participants
+    // will fire at a shorter interval based on the participant_report_events_per_interval
+    // value.
+    auto base_interval = config.statistics_interval().value().sec();
     ParticipantStatisticsReporterBase participant_stats_stub;
+    ParticipantStatisticsReporter participant_stats_reporter(config.participant_statistics_writer(),
+                                                             base_interval,
+                                                             max_participant_reports,
+                                                             config.log_relay_statistics());
+
+    time_t part_interval_sec = base_interval / participant_report_events_per_interval;
+    if (part_interval_sec == 0) {
+     part_interval_sec = 1;
+    }
+
+    OpenDDS::DCPS::TimeDuration participant_interval(part_interval_sec);
+    StatsScheduler participants_timer(participant_interval, participant_stats_reporter, reactor);
 
 
     // Setup readers and writers for managing the association table.
