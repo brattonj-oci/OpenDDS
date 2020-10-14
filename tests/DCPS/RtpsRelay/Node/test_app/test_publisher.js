@@ -38,53 +38,6 @@ if (secure) {
 }
 
 // Constant QoS and GUID values for testing
-
-// initial_TopicQos_.topic_data = initial_TopicDataQosPolicy_;
-// initial_TopicQos_.durability = initial_DurabilityQosPolicy_;
-// initial_TopicQos_.durability_service = initial_DurabilityServiceQosPolicy_;
-// initial_TopicQos_.deadline = initial_DeadlineQosPolicy_;
-// initial_TopicQos_.latency_budget = initial_LatencyBudgetQosPolicy_;
-// initial_TopicQos_.liveliness = initial_LivelinessQosPolicy_;
-// initial_TopicQos_.reliability = initial_ReliabilityQosPolicy_;
-// initial_TopicQos_.destination_order = initial_DestinationOrderQosPolicy_;
-// initial_TopicQos_.history = initial_HistoryQosPolicy_;
-// initial_TopicQos_.resource_limits = initial_ResourceLimitsQosPolicy_;
-// initial_TopicQos_.transport_priority = initial_TransportPriorityQosPolicy_;
-// initial_TopicQos_.lifespan = initial_LifespanQosPolicy_;
-// initial_TopicQos_.ownership = initial_OwnershipQosPolicy_;
-
-
-initial_DeadlineQosPolicy_.period.sec = DDS::DURATION_INFINITE_SEC;
-initial_DeadlineQosPolicy_.period.nanosec = DDS::DURATION_INFINITE_NSEC;
-
-initial_LatencyBudgetQosPolicy_.duration.sec = DDS::DURATION_ZERO_SEC;
-initial_LatencyBudgetQosPolicy_.duration.nanosec = DDS::DURATION_ZERO_NSEC;
-
-initial_LivelinessQosPolicy_.kind = DDS::AUTOMATIC_LIVELINESS_QOS;
-initial_LivelinessQosPolicy_.lease_duration.sec = DDS::DURATION_INFINITE_SEC;
-initial_LivelinessQosPolicy_.lease_duration.nanosec = DDS::DURATION_INFINITE_NSEC;
-
-initial_ReliabilityQosPolicy_.kind = DDS::BEST_EFFORT_RELIABILITY_QOS;
-initial_ReliabilityQosPolicy_.max_blocking_time.sec = DDS::DURATION_INFINITE_SEC;
-initial_ReliabilityQosPolicy_.max_blocking_time.nanosec = DDS::DURATION_INFINITE_NSEC;
-
-initial_DestinationOrderQosPolicy_.kind = DDS::BY_RECEPTION_TIMESTAMP_DESTINATIONORDER_QOS;
-
-
-initial_HistoryQosPolicy_.kind = DDS::KEEP_LAST_HISTORY_QOS;
-initial_HistoryQosPolicy_.depth = 1;
-
-initial_ResourceLimitsQosPolicy_.max_samples = DDS::LENGTH_UNLIMITED;
-initial_ResourceLimitsQosPolicy_.max_instances = DDS::LENGTH_UNLIMITED;
-initial_ResourceLimitsQosPolicy_.max_samples_per_instance = DDS::LENGTH_UNLIMITED;
-
-initial_TransportPriorityQosPolicy_.value = 0;
-initial_OwnershipQosPolicy_.kind = DDS::SHARED_OWNERSHIP_QOS;
-initial_LifespanQosPolicy_.duration.sec = DDS::DURATION_INFINITE_SEC;
-initial_LifespanQosPolicy_.duration.nanosec = DDS::DURATION_INFINITE_NSEC;
-
-//
-const relay_qos = null;
 const part_guid = {
   guidPrefix: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   entityId: {
@@ -92,19 +45,8 @@ const part_guid = {
     entityKind: 0
   }
 };
-const writer_qos = null;
-// {
-//   latency_budget: {
-//     sec: 1,
-//     nanosec: 0
-//   },
-//   liveliness: {
-//     lease_duration: {
-//       sec: 5,
-//       nanosec: 0
-//     }
-//   }
-// };
+const writer_qos = null; // Default
+
 
 function init_opendds(opendds_addon) {
   if (secure) {
@@ -117,7 +59,7 @@ function init_opendds(opendds_addon) {
 // Setup default variables and pull in requirements
 var opendds_addon = require('/opt/node-opendds/lib/node-opendds'),
   publishers = require('./RelayTopicPublisher'),
-  topic_lib = opendds_addon.load('idl/OpenDDS_RtpsRelay'),
+  topic_lib = opendds_addon.load('idl/OpenDDS_RtpsRelayNode'),
   util = require('util'),
   factory = init_opendds(opendds_addon),
   participant = factory.create_participant(DOMAIN_ID, domain_part_qos),

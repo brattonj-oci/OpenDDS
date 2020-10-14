@@ -45,7 +45,7 @@ function init_opendds(opendds_addon) {
 
 var opendds_addon = require('/opt/node-opendds/lib/node-opendds'),
   RelayTopicSubscriber = require('./RelayTopicSubscriber'),
-  topic_lib = opendds_addon.load('idl/OpenDDS_RtpsRelay'),
+  topic_lib = opendds_addon.load('idl/OpenDDS_RtpsRelayNode'),
   factory = init_opendds(opendds_addon),
   participant = factory.create_participant(DOMAIN_ID, domain_part_qos);
 
