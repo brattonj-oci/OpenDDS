@@ -1,0 +1,114 @@
+/*
+ *
+ *
+ * Distributed under the OpenDDS License.
+ * See: http://www.opendds.org/license.html
+ */
+
+#include "DdsDcpsCore.idl"
+
+module RtpsRelay {
+
+  // GUID prefix bytes - uniquely specify the participant.
+  typedef octet GuidPrefix_t[12];
+
+  // Key portion of Entity identifier.
+  typedef octet EntityKey_t[3];
+
+  // Uniquely identify each entity within a participant.
+  struct EntityId_t {
+    @key EntityKey_t entityKey;
+    @key octet entityKind;
+  };
+
+  // The actual GUID itself.
+  struct GUID_t {
+    @key GuidPrefix_t guidPrefix;
+    @key EntityId_t entityId;
+  };
+
+  @topic
+  struct WriterEntry {
+    @key GUID_t guid;
+
+    string topic_name;
+    string type_name;
+    DDS_Core::DataWriterQos data_writer_qos;
+    DDS_Core::PublisherQos publisher_qos;
+  };
+
+  @topic
+  struct ReaderEntry {
+    @key GUID_t guid;
+
+    string topic_name;
+    string type_name;
+    DDS_Core::DataReaderQos data_reader_qos;
+    DDS_Core::SubscriberQos subscriber_qos;
+  };
+
+  @topic
+  struct ParticipantEntry {
+    @key GUID_t guid;
+    DDS_Core::UserDataQosPolicy user_data;
+  };
+
+  @topic
+  struct GuidNameAddress {
+    @key GUID_t guid;
+    @key string name;
+    string address;
+  };
+
+  typedef sequence<GUID_t> GuidSequence;
+
+  struct RelayHeader {
+    GuidSequence to;
+  };
+
+  struct Duration_t {
+    long sec;
+    unsigned long nanosec;
+  };
+
+  @topic
+  struct ParticipantStatistics {
+    @key GUID_t guid;
+    @key string name;
+    Duration_t interval;
+    unsigned long messages_in;
+    unsigned long long bytes_in;
+    unsigned long messages_out;
+    unsigned long long bytes_out;
+    unsigned long max_fan_out;
+  };
+
+  @topic
+  struct HandlerStatistics {
+    @key GUID_t application_participant_guid;
+    @key string name;
+    Duration_t interval;
+    unsigned long messages_in;
+    unsigned long long bytes_in;
+    unsigned long messages_out;
+    unsigned long long bytes_out;
+    unsigned long max_fan_out;
+    unsigned long max_queue_size;
+    Duration_t max_queue_latency;
+    unsigned long local_active_participants;
+    unsigned long error_count;
+    unsigned long governor_count;
+  };
+
+  @topic
+  struct DomainStatistics {
+    @key GUID_t application_participant_guid;
+    Duration_t interval;
+    unsigned long local_participants;
+    unsigned long local_writers;
+    unsigned long local_readers;
+    unsigned long total_writers;
+    unsigned long total_readers;
+  };
+
+};

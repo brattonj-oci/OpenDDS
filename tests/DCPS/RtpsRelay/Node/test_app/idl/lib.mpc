@@ -1,0 +1,11 @@
+project(RtpsRelayLib): dcpslib, dcps_v8 {
+  idlflags      += -Wb,stub_export_macro=RtpsRelayLib_Export -Wb,stub_export_include=export.h -SS
+  dcps_ts_flags += -Wb,export_macro=RtpsRelayLib_Export -Wb,export_include=export.h
+  dynamicflags  += RTPSRELAYLIB_BUILD_DLL
+  sharedname = OpenDDS_RtpsRelay
+
+  TypeSupport_Files {
+    Relay.idl
+    DdsDcpsCore.idl
+  }
+}
