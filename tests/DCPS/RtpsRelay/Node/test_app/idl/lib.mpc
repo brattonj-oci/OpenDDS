@@ -1,6 +1,6 @@
-project(RtpsRelayNodeLib): dcpslib, dcps_v8 {
-  idlflags      += -Wb,stub_export_macro=RtpsRelayLib_Export -Wb,stub_export_include=export.h -SS
-  dcps_ts_flags += -Wb,export_macro=RtpsRelayLib_Export -Wb,export_include=export.h
+project(RtpsRelayNodeLib_Export): dcpslib, dcps_v8 {
+  idlflags      += -Wb,stub_export_macro=RtpsRelayNodeLib_Export -Wb,stub_export_include=export.h -SS
+  dcps_ts_flags += -Wb,export_macro=RtpsRelayNodeLib_Export -Wb,export_include=export.h
   dynamicflags  += RTPSRELAYLIB_BUILD_DLL
   sharedname = OpenDDS_RtpsRelayNode
 

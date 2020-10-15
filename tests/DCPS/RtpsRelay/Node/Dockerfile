@@ -1,6 +1,7 @@
 FROM objectcomputing/opendds:release-DDS-3.14
 
-RUN apt-get update && apt-get -y upgrade && apt-get -y install wget openvpn dnsutils gnupg
+#RUN apt-get update && apt-get -y upgrade && apt-get -y install wget openvpn dnsutils gnupg
+RUN apt-get update && apt-get -y install wget openvpn dnsutils gnupg
 
 # Setup Nodejs 10
 RUN curl -sL https://deb.nodesource.com/setup_10.x -o setup.sh
@@ -9,32 +10,28 @@ RUN apt-get -y install nodejs
 
 RUN mkdir -p /dev/net && mknod /dev/net/tun0 c 10 200
 
-# Setup OpenDDS environment
-WORKDIR /opt/OpenDDS
-RUN . ./setenv.sh
-
 # Temp - Soon this will be available via NPM
 COPY node-opendds /opt/node-opendds
 WORKDIR /opt/node-opendds
-RUN npm install &&
-RUN npm install -g node-gyp
-RUN node-gyp install --ensure
+RUN npm install && npm install -g node-gyp && node-gyp install --ensure
 RUN node-gyp configure build
 
 # These environment variables are needed for node-opendds
 # V8_ROOT expects to have /include/node appended to the end
 ENV V8_ROOT /usr
 ENV NAN_ROOT /opt/node-opendds/node_modules/nan
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/opt/node-opendds/tools/v8stubs
+ENV LD_LIBRARY_PATH /opt/node-opendds/tools/v8stubs:$LD_LIBRARY_PATH
 RUN $ACE_ROOT/bin/mwc.pl -type gnuace
 RUN make
 
 # Add the node test-app to the image
-COPY test /opt/test-app
-WORKDIR /opt/test-app
+COPY test_app /opt/test_app
+WORKDIR /opt/test_app
 RUN $ACE_ROOT/bin/mwc.pl -type gnuace
 RUN make
 
+WORKDIR /opt
+COPY start.sh /opt/start.sh
 # WORKDIR /usr/src/prism-common
 
 # COPY package.json package-lock.json .babelrc /usr/src/prism-common/
@@ -60,4 +57,4 @@ RUN make
 # EXPOSE 80
 
 # CMD [ "npm", "start" ]
-CMD ["tail", "-f", "/dev/null"]
+CMD ["/bin/bash", "/opt/start.sh"]
